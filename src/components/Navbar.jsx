@@ -26,6 +26,16 @@ export default function Navbar({ onOpenLogin }) {
     setMenuOpen(false);
   }, [location]);
 
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.classList.add('nav-open');
+    } else {
+      document.body.classList.remove('nav-open');
+    }
+    return () => document.body.classList.remove('nav-open');
+  }, [menuOpen]);
+
   // Compute initials for profile badge
   const getInitial = () => {
     if (!currentUser) return 'U';
@@ -46,7 +56,7 @@ export default function Navbar({ onOpenLogin }) {
         />
       </Link>
       
-      <ul className="nav-links">
+      <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
         <li><Link to="/">Home</Link></li>
         <li><Link to="/about">About</Link></li>
         <li><Link to="/contact">Contact</Link></li>
@@ -79,7 +89,12 @@ export default function Navbar({ onOpenLogin }) {
       </ul>
 
       {/* Mobile Hamburger toggle button */}
-      <div className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
+      <div
+        className={`hamburger ${menuOpen ? 'open' : ''}`}
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="Toggle navigation menu"
+        role="button"
+      >
         <span></span>
         <span></span>
         <span></span>
