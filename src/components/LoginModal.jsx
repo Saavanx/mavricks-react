@@ -16,7 +16,8 @@ export default function LoginModal({ isOpen, onClose }) {
     changeUserPassword,
     logout,
     initRecaptcha,
-    idToken
+    idToken,
+    getFreshToken
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('signin-tab');
@@ -70,13 +71,15 @@ export default function LoginModal({ isOpen, onClose }) {
 
   // Load user bookings when modal is open
   useEffect(() => {
-    if (currentUser && isOpen && idToken) {
+    if (currentUser && isOpen) {
       const fetchUserBookings = async () => {
         setLoadingBookings(true);
         try {
+          const token = await getFreshToken() || idToken;
+          if (!token) return;
           const res = await fetch('/api/user-bookings', {
             headers: {
-              'Authorization': `Bearer ${idToken}`
+              'Authorization': `Bearer ${token}`
             }
           });
           if (res.ok) {
@@ -93,7 +96,7 @@ export default function LoginModal({ isOpen, onClose }) {
       };
       fetchUserBookings();
     }
-  }, [currentUser, isOpen, idToken]);
+  }, [currentUser, isOpen]);
 
   if (!isOpen) return null;
 

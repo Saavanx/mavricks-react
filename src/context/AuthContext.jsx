@@ -39,7 +39,8 @@ export function AuthProvider({ children }) {
       unsubscribe = firebaseAuth.onAuthStateChanged(async (user) => {
         setCurrentUser(user);
         if (user) {
-          const token = await user.getIdToken();
+          // Force-refresh token so we always have a fresh one on login
+          const token = await user.getIdToken(true);
           setIdToken(token);
           localStorage.setItem('firebaseIdToken', token);
           
@@ -72,6 +73,20 @@ export function AuthProvider({ children }) {
 
     return () => unsubscribe();
   }, []);
+
+  // Always returns a fresh, non-expired Firebase ID token
+  const getFreshToken = async () => {
+    if (!currentUser) return null;
+    try {
+      const freshToken = await currentUser.getIdToken(true); // force refresh
+      setIdToken(freshToken);
+      localStorage.setItem('firebaseIdToken', freshToken);
+      return freshToken;
+    } catch (err) {
+      console.error('Failed to refresh Firebase token:', err);
+      return idToken; // fall back to cached
+    }
+  };
 
   // Initialize Recaptcha
   const initRecaptcha = (containerId) => {
@@ -133,13 +148,14 @@ export function AuthProvider({ children }) {
 
   const updateProfileData = async ({ name, email, date_of_birth, city }) => {
     if (!currentUser || !idToken) return;
+    const token = await getFreshToken();
     
     // 1. Sync backend Neon DB
     const res = await fetch('/api/profile', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ name, email, date_of_birth, city })
     });
@@ -168,6 +184,7 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     idToken,
+    getFreshToken,
     userProfile,
     loading,
     initRecaptcha,

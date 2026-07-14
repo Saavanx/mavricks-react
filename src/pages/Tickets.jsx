@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Tickets({ onOpenLogin }) {
-  const { currentUser, idToken, logout } = useAuth();
+  const { currentUser, idToken, getFreshToken, logout } = useAuth();
   const [searchParams] = useSearchParams();
 
   // URL status tracking
@@ -130,11 +130,12 @@ export default function Tickets({ onOpenLogin }) {
     };
 
     try {
+      const token = await getFreshToken() || idToken;
       const response = await fetch('/api/create-payment-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
