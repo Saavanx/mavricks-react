@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ onOpenLogin }) {
   const location = useLocation();
   const { currentUser } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const isActive = (path) => {
-    return location.pathname === path ? 'active' : '';
-  };
+  // Monitor scrolling to apply background filters
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 60) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close mobile menu on page transitions
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location]);
 
   // Compute initials for profile badge
   const getInitial = () => {
@@ -20,25 +36,32 @@ export default function Navbar({ onOpenLogin }) {
   };
 
   return (
-    <header className="header">
-      <div className="nav-container">
-        <Link to="/" className="logo">
-          <img src="/logo/IMG_3478.PNG" alt="Mavricks Logo" />
-        </Link>
-        <nav className="nav-menu">
-          <Link to="/" className={isActive('/')}>Home</Link>
-          <Link to="/about" className={isActive('/about')}>About Us</Link>
-          <Link to="/events" className={isActive('/events')}>Events</Link>
-          <Link to="/tickets" className={isActive('/tickets')}>Tickets</Link>
-          <Link to="/contact" className={isActive('/contact')}>Contact Us</Link>
-        </nav>
-        <div className="nav-actions">
+    <nav className={`navbar ${scrolled ? 'scrolled' : ''} ${menuOpen ? 'menu-open' : ''}`}>
+      <Link to="/" className="nav-logo">
+        <img 
+          src="/logo/IMG_3480.PNG" 
+          alt="Mavricks Logo" 
+          className="logo-img" 
+          style={{ height: '60px', marginRight: '10px' }} 
+        />
+      </Link>
+      
+      <ul className="nav-links">
+        <li><Link to="/">Home</Link></li>
+        <li><Link to="/about">About</Link></li>
+        <li><Link to="/contact">Contact</Link></li>
+        <li><Link to="/events">Events</Link></li>
+        <li><Link to="/tickets">Tickets</Link></li>
+        <li><Link to="/policies">Policies</Link></li>
+        
+        {/* Render Profile / Login action */}
+        <li>
           {currentUser ? (
             <button 
               type="button"
               onClick={onOpenLogin} 
               className="nav-cta nav-avatar-btn"
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <div className="nav-avatar-circle">{getInitial()}</div>
             </button>
@@ -52,8 +75,15 @@ export default function Navbar({ onOpenLogin }) {
               Login
             </button>
           )}
-        </div>
+        </li>
+      </ul>
+
+      {/* Mobile Hamburger toggle button */}
+      <div className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
-    </header>
+    </nav>
   );
 }
