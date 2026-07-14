@@ -23,6 +23,7 @@ export default function Tickets({ onOpenLogin }) {
   // Success Receipt state
   const [receipt, setReceipt] = useState(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [gatewayError, setGatewayError] = useState(null);
 
   // Pricing constants
   const packagePrices = {
@@ -162,7 +163,17 @@ export default function Tickets({ onOpenLogin }) {
       setIsReceiptOpen(true);
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Unable to connect to the payment gateway.');
+      const isGatewayDown = err.message && (
+        err.message.toLowerCase().includes('unavailable') ||
+        err.message.toLowerCase().includes('gateway') ||
+        err.message.toLowerCase().includes('encdata') ||
+        err.message.toLowerCase().includes('unexpected response')
+      );
+      if (isGatewayDown) {
+        setGatewayError(err.message);
+      } else {
+        setGatewayError(err.message || 'Unable to connect to the payment gateway.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -426,6 +437,64 @@ export default function Tickets({ onOpenLogin }) {
           </div>
         </div>
       </section>
+
+      {/* GATEWAY ERROR MODAL */}
+      {gatewayError && (
+        <div className="login-modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+          <div className="login-modal-card" style={{ maxWidth: '420px', padding: '32px', textAlign: 'center', position: 'relative' }}>
+            <button type="button" className="close-modal-btn" onClick={() => setGatewayError(null)}>&times;</button>
+            
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(231, 76, 60, 0.15)', border: '1px solid rgba(231,76,60,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>⚠️</div>
+            
+            <h3 className="modal-title" style={{ color: '#e74c3c', fontSize: '20px', marginBottom: '8px' }}>Payment Gateway Unavailable</h3>
+            <p className="modal-subtitle" style={{ marginBottom: '20px', lineHeight: '1.7' }}>
+              Our payment gateway is currently experiencing downtime. You can book directly via WhatsApp and our team will confirm your slot instantly.
+            </p>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '16px', marginBottom: '20px', textAlign: 'left', fontSize: '13px' }}>
+              <div style={{ marginBottom: '8px', color: 'rgba(255,255,255,0.5)' }}>Your Selection</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.6)' }}>Package</span>
+                <strong style={{ textTransform: 'capitalize' }}>{packageType} Entry × {quantity}</strong>
+              </div>
+              {tableType && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.6)' }}>Table</span>
+                  <strong style={{ textTransform: 'capitalize' }}>{tableType}</strong>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', marginTop: '6px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.6)' }}>Total</span>
+                <strong style={{ color: '#2ecc71' }}>₹{calculateTotal().toLocaleString('en-IN')}</strong>
+              </div>
+            </div>
+
+            <a
+              href={`https://wa.me/919319826105?text=${encodeURIComponent(`Hi! I want to book tickets for March Madness.\n\nPackage: ${packageType} × ${quantity}\nTable: ${tableType || 'None'}\nTotal: ₹${calculateTotal().toLocaleString('en-IN')}\nEmail: ${customerEmail}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                width: '100%', padding: '14px', borderRadius: '999px',
+                background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                color: '#fff', fontWeight: 700, fontSize: '15px', textDecoration: 'none',
+                boxShadow: '0 8px 30px rgba(37,211,102,0.3)', marginBottom: '12px'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+              Book via WhatsApp
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setGatewayError(null)}
+              style={{ width: '100%', padding: '11px', borderRadius: '999px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}
+            >
+              Try Again Later
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* SUCCESS RECEIPT MODAL OVERLAY */}
       {isReceiptOpen && receipt && (
