@@ -10,6 +10,7 @@ import './assets/css/contact.css';
 import './assets/css/events.css';
 import './assets/css/tickets.css';
 import './assets/css/gallery.css';
+import './assets/css/policies.css';
 
 // Remove the default Vite index.css
 // import './index.css';
