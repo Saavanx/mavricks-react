@@ -47,14 +47,47 @@ export default function Tickets({ onOpenLogin }) {
   // Handle gateway redirects on success callbacks
   useEffect(() => {
     if (status === 'success' && bookingId) {
-      setReceipt({
-        date: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-        status: 'Paid',
-        amount: 'Confirmed',
-        transactionId: bookingId,
-        ref: txnId || 'Pending'
-      });
-      setIsReceiptOpen(true);
+      const fetchBooking = async () => {
+        try {
+          const res = await fetch(`/api/bookings/${bookingId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.ok && data.booking) {
+              const b = data.booking;
+              setReceipt({
+                date: new Date(b.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+                status: b.payment_status.toUpperCase(),
+                amount: `₹${Number(b.amount).toLocaleString('en-IN')}`,
+                transactionId: b.booking_id,
+                ref: b.gateway_payment_id || txnId || 'Pending',
+                eventName: b.event_name,
+                package: b.package_type,
+                qty: b.quantity,
+                table: b.table_type || 'None',
+                addons: JSON.parse(b.addons_json || '[]').join(', ') || 'None'
+              });
+              setIsReceiptOpen(true);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching booking detail:', err);
+          // Fallback static details
+          setReceipt({
+            date: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+            status: 'PAID',
+            amount: 'Confirmed',
+            transactionId: bookingId,
+            ref: txnId || 'Pending',
+            eventName: 'March Madness',
+            package: 'Passes',
+            qty: 1,
+            table: 'None',
+            addons: 'None'
+          });
+          setIsReceiptOpen(true);
+        }
+      };
+      fetchBooking();
     } else if (status === 'cancelled') {
       alert('Payment was cancelled or failed. Please try again.');
     }
@@ -396,39 +429,84 @@ export default function Tickets({ onOpenLogin }) {
       {/* SUCCESS RECEIPT MODAL OVERLAY */}
       {isReceiptOpen && receipt && (
         <div className="login-modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-          <div className="login-modal-card" style={{ maxWidth: '420px', padding: '30px' }}>
+          <div className="login-modal-card" style={{ maxWidth: '460px', padding: '30px', position: 'relative' }}>
             <button type="button" className="close-modal-btn" onClick={() => setIsReceiptOpen(false)}>&times;</button>
-            <h3 className="modal-title" style={{ color: '#f7b731', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <span>🎉</span> Booking Confirmed!
-            </h3>
-            <p className="modal-subtitle">Your pass is locked. Receipt has been dispatched to your email.</p>
             
-            <div className="receipt-summary" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-              <div className="receipt-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Date</span>
-                <strong>{receipt.date}</strong>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(46, 204, 113, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '28px', color: '#2ecc71' }}>✓</div>
+              <h3 className="modal-title" style={{ margin: 0, fontSize: '24px', color: '#f7b731' }}>Payment Confirmed</h3>
+              <p className="modal-subtitle" style={{ margin: '6px 0 0' }}>Your passes are secured! Show this receipt at the entrance.</p>
+            </div>
+
+            {/* Aesthetic Ticket Receipt Design */}
+            <div className="ticket-receipt" style={{ background: '#13111f', border: '1px dashed rgba(247, 183, 49, 0.3)', borderRadius: '16px', overflow: 'hidden', color: '#fff', position: 'relative' }}>
+              
+              {/* Top ticket section */}
+              <div style={{ padding: '20px', borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--gold)', fontWeight: 700 }}>Mavricks Event Pass</span>
+                <h4 style={{ margin: '4px 0 10px', fontSize: '1.25rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
+                  {receipt.eventName || 'MARCH MADNESS — ROOFTOP SPLASH'}
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Date &amp; Time</span>
+                    <strong>{receipt.date}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Venue</span>
+                    <strong>Rooftop Lounge, NCR</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Package Type</span>
+                    <strong style={{ textTransform: 'capitalize' }}>{receipt.package} Entry</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Quantity</span>
+                    <strong>{receipt.qty} Pax</strong>
+                  </div>
+                </div>
               </div>
-              <div className="receipt-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Status</span>
-                <strong style={{ color: '#2ecc71' }}>{receipt.status}</strong>
-              </div>
-              <div className="receipt-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Booking ID</span>
-                <strong>{receipt.transactionId}</strong>
-              </div>
-              <div className="receipt-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Reference</span>
-                <strong>{receipt.ref}</strong>
+
+              {/* Middle circular punchouts to simulate a physical ticket */}
+              <div style={{ position: 'absolute', left: '-10px', top: '56%', width: '20px', height: '20px', borderRadius: '50%', background: '#1a1729', borderRight: '1px dashed rgba(247, 183, 49, 0.3)', zIndex: 2 }}></div>
+              <div style={{ position: 'absolute', right: '-10px', top: '56%', width: '20px', height: '20px', borderRadius: '50%', background: '#1a1729', borderLeft: '1px dashed rgba(247, 183, 49, 0.3)', zIndex: 2 }}></div>
+
+              {/* Bottom billing section */}
+              <div style={{ padding: '20px', background: 'rgba(255,255,255,0.01)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Table Allocation</span>
+                    <strong style={{ textTransform: 'capitalize' }}>{receipt.table}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Add-ons Included</span>
+                    <strong style={{ textTransform: 'capitalize' }}>{receipt.addons}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Booking ID</span>
+                    <strong style={{ color: 'var(--cyan)' }}>{receipt.transactionId}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Transaction Ref</span>
+                    <strong style={{ fontSize: '11px' }}>{receipt.ref}</strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
+                  <span style={{ color: '#fff', fontWeight: 600 }}>Amount Charged</span>
+                  <strong style={{ color: '#2ecc71', fontSize: '16px' }}>{receipt.amount}</strong>
+                </div>
               </div>
             </div>
-            
+
             <button 
               type="button" 
               onClick={() => setIsReceiptOpen(false)} 
               className="btn-gold" 
               style={{ width: '100%', padding: '12px', background: '#f7b731', color: '#111', fontWeight: 700, border: 0, borderRadius: '999px', marginTop: '24px', cursor: 'pointer' }}
             >
-              Done
+              Done &amp; Exit
             </button>
           </div>
         </div>

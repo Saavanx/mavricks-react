@@ -15,10 +15,14 @@ export default function LoginModal({ isOpen, onClose }) {
     updateProfileData,
     changeUserPassword,
     logout,
-    initRecaptcha
+    initRecaptcha,
+    idToken
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('signin-tab');
+  const [profileSubTab, setProfileSubTab] = useState('info');
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   // Input states
   const [loginEmail, setLoginEmail] = useState('');
@@ -63,6 +67,33 @@ export default function LoginModal({ isOpen, onClose }) {
       initRecaptcha('recaptcha-container-react');
     }
   }, [isOpen, currentUser]);
+
+  // Load user bookings when modal is open
+  useEffect(() => {
+    if (currentUser && isOpen && idToken) {
+      const fetchUserBookings = async () => {
+        setLoadingBookings(true);
+        try {
+          const res = await fetch('/api/user-bookings', {
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.ok && data.bookings) {
+              setBookings(data.bookings);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load user bookings:', err);
+        } finally {
+          setLoadingBookings(false);
+        }
+      };
+      fetchUserBookings();
+    }
+  }, [currentUser, isOpen, idToken]);
 
   if (!isOpen) return null;
 
@@ -306,52 +337,140 @@ export default function LoginModal({ isOpen, onClose }) {
         {currentUser && (
           <div className="tab-content active">
             <h3 className="modal-title">Manage Profile</h3>
+
+            {/* Profile Sub Tabs */}
+            <div className="login-tabs" style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', marginBottom: '20px' }}>
+              <button 
+                type="button" 
+                className={`tab-btn ${profileSubTab === 'info' ? 'active' : ''}`}
+                style={{ flex: 1, background: 'none', border: 'none', color: profileSubTab === 'info' ? '#f7b731' : 'rgba(255,255,255,0.6)', borderBottom: profileSubTab === 'info' ? '2px solid #f7b731' : '2px solid transparent', padding: '12px', cursor: 'pointer', fontWeight: 600 }}
+                onClick={() => setProfileSubTab('info')}
+              >
+                Profile Info
+              </button>
+              <button 
+                type="button" 
+                className={`tab-btn ${profileSubTab === 'bookings' ? 'active' : ''}`}
+                style={{ flex: 1, background: 'none', border: 'none', color: profileSubTab === 'bookings' ? '#f7b731' : 'rgba(255,255,255,0.6)', borderBottom: profileSubTab === 'bookings' ? '2px solid #f7b731' : '2px solid transparent', padding: '12px', cursor: 'pointer', fontWeight: 600 }}
+                onClick={() => setProfileSubTab('bookings')}
+              >
+                My Bookings ({bookings.length})
+              </button>
+            </div>
             
-            {/* Email Verification Banner */}
-            {currentUser.email && !currentUser.emailVerified && (
-              <div className="user-profile-status" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Email Not Verified</span>
-                  <button 
-                    type="button" 
-                    onClick={handleSendVerifyEmail}
-                    style={{ fontSize: '12px', background: 'none', border: 'none', color: '#f7b731', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer' }}
-                  >
-                    Verify Now
-                  </button>
-                </div>
-              </div>
+            {profileSubTab === 'info' && (
+              <>
+                {/* Email Verification Banner */}
+                {currentUser.email && !currentUser.emailVerified && (
+                  <div className="user-profile-status" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Email Not Verified</span>
+                      <button 
+                        type="button" 
+                        onClick={handleSendVerifyEmail}
+                        style={{ fontSize: '12px', background: 'none', border: 'none', color: '#f7b731', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        Verify Now
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Edit Profile Form */}
+                <form onSubmit={handleSaveProfile} className="modal-form">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>Full Name</label>
+                    <input type="text" placeholder="Full Name" value={profileName} onChange={(e) => setProfileName(e.target.value)} required />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>Email Address</label>
+                    <input type="email" placeholder="Email Address" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} required />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>Date of Birth</label>
+                    <input type="date" value={profileDob} onChange={(e) => setProfileDob(e.target.value)} style={{ colorScheme: 'dark' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>City</label>
+                    <input type="text" placeholder="City" value={profileCity} onChange={(e) => setProfileCity(e.target.value)} />
+                  </div>
+                  <button type="submit" className="btn-gold" style={{ marginTop: '8px' }}>Save Profile</button>
+                </form>
+
+                <div className="modal-divider"><span>Change Password</span></div>
+
+                {/* Password Reset Form */}
+                <form onSubmit={handlePasswordUpdate} className="modal-form">
+                  <input type="password" placeholder="New Password" value={profileNewPassword} onChange={(e) => setProfileNewPassword(e.target.value)} required minLength={6} />
+                  <input type="password" placeholder="Confirm New Password" value={profileConfirmPassword} onChange={(e) => setProfileConfirmPassword(e.target.value)} required minLength={6} />
+                  <button type="submit" className="btn-gold">Update Password</button>
+                </form>
+              </>
             )}
 
-            {/* Edit Profile Form */}
-            <form onSubmit={handleSaveProfile} className="modal-form">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>Full Name</label>
-                <input type="text" placeholder="Full Name" value={profileName} onChange={(e) => setProfileName(e.target.value)} required />
+            {profileSubTab === 'bookings' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', paddingRight: '6px' }}>
+                {loadingBookings ? (
+                  <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: '20px 0', fontSize: '13px' }}>Loading bookings...</p>
+                ) : bookings.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                    <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>🎟️</span>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>No bookings found.</p>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', margin: '4px 0 0' }}>Visit our Tickets page to reserve passes!</p>
+                  </div>
+                ) : (
+                  bookings.map((b) => {
+                    const statusColor = b.payment_status === 'paid' ? '#2ecc71' : b.payment_status === 'failed' ? '#e74c3c' : '#f1c40f';
+                    const statusText = b.payment_status === 'paid' ? 'PAID' : b.payment_status === 'failed' ? 'FAILED' : 'PENDING';
+                    
+                    return (
+                      <div 
+                        key={b.booking_id}
+                        style={{
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          borderRadius: '12px',
+                          padding: '14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ margin: 0, fontSize: '13px', color: '#fff', fontWeight: 600 }}>{b.event_name}</h4>
+                          <span 
+                            style={{ 
+                              fontSize: '8px', 
+                              fontWeight: 800, 
+                              color: statusColor, 
+                              background: `${statusColor}12`, 
+                              border: `1px solid ${statusColor}33`,
+                              padding: '2px 6px', 
+                              borderRadius: '999px',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
+                            {statusText}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                          <div>Event Date: <strong style={{ color: '#fff' }}>{b.event_date}</strong></div>
+                          <div>Total Amount: <strong style={{ color: '#2ecc71' }}>₹{Number(b.amount).toLocaleString('en-IN')}</strong></div>
+                          <div>Package: <strong style={{ color: '#fff', textTransform: 'capitalize' }}>{b.package_type} x {b.quantity}</strong></div>
+                          <div>Table: <strong style={{ color: '#fff', textTransform: 'capitalize' }}>{b.table_type || 'None'}</strong></div>
+                          <div style={{ gridColumn: 'span 2' }}>Booking ID: <strong style={{ color: 'var(--cyan)' }}>{b.booking_id}</strong></div>
+                          {b.gateway_payment_id && (
+                            <div style={{ gridColumn: 'span 2' }}>Txn Ref: <strong style={{ color: '#fff' }}>{b.gateway_payment_id}</strong></div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>Email Address</label>
-                <input type="email" placeholder="Email Address" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} required />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>Date of Birth</label>
-                <input type="date" value={profileDob} onChange={(e) => setProfileDob(e.target.value)} style={{ colorScheme: 'dark' }} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginLeft: '4px', textAlign: 'left' }}>City</label>
-                <input type="text" placeholder="City" value={profileCity} onChange={(e) => setProfileCity(e.target.value)} />
-              </div>
-              <button type="submit" className="btn-gold" style={{ marginTop: '8px' }}>Save Profile</button>
-            </form>
-
-            <div className="modal-divider"><span>Change Password</span></div>
-
-            {/* Password Reset Form */}
-            <form onSubmit={handlePasswordUpdate} className="modal-form">
-              <input type="password" placeholder="New Password" value={profileNewPassword} onChange={(e) => setProfileNewPassword(e.target.value)} required minLength={6} />
-              <input type="password" placeholder="Confirm New Password" value={profileConfirmPassword} onChange={(e) => setProfileConfirmPassword(e.target.value)} required minLength={6} />
-              <button type="submit" className="btn-gold">Update Password</button>
-            </form>
+            )}
 
             <button 
               type="button" 
