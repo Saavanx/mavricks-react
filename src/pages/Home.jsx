@@ -1,27 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-function Counter({ targetValue, duration = 2000 }) {
-  const [count, setCount] = useState(0);
+function TypedWords() {
+  const words = [
+    'party',
+    'pool party',
+    'house party',
+    'club nights',
+    'rooftop events',
+    'private events',
+    'dj nights',
+    'clubbing events',
+    'night life'
+  ];
+  const [wordIndex, setWordIndex] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    let start = 0;
-    const end = parseInt(targetValue, 10);
-    if (start === end) return;
+    let timer;
+    const activeWord = words[wordIndex];
+    const typingSpeed = isDeleting ? 60 : 120;
 
-    let totalMiliseconds = duration;
-    let incrementTime = Math.abs(Math.floor(totalMiliseconds / end));
+    if (!isDeleting && currentText === activeWord) {
+      // Hold word before deleting
+      timer = setTimeout(() => setIsDeleting(true), 1600);
+    } else if (isDeleting && currentText === '') {
+      setIsDeleting(false);
+      setWordIndex((prev) => (prev + 1) % words.length);
+    } else {
+      timer = setTimeout(() => {
+        const nextText = isDeleting
+          ? activeWord.substring(0, currentText.length - 1)
+          : activeWord.substring(0, currentText.length + 1);
+        setCurrentText(nextText);
+      }, typingSpeed);
+    }
 
-    let timer = setInterval(() => {
-      start += 1;
-      setCount(start);
-      if (start === end) clearInterval(timer);
-    }, incrementTime);
+    return () => clearTimeout(timer);
+  }, [currentText, isDeleting, wordIndex]);
 
-    return () => clearInterval(timer);
-  }, [targetValue, duration]);
-
-  return <span className="stat-number">{count}</span>;
+  return <span className="hero-typed">{currentText}</span>;
 }
 
 export default function Home() {
@@ -51,7 +70,7 @@ export default function Home() {
             <h1 className="hero-title reveal reveal-delay-1">
               CURATED<br />
               <em className="hero-italic">
-                <span className="hero-typed">premium</span>
+                <TypedWords />
               </em><br />
               <span className="hero-title-line hero-title-line-bottom">EXPERIENCES</span>
             </h1>
@@ -120,25 +139,25 @@ export default function Home() {
         <div className="container">
           <div className="stats-grid">
             <div className="stat-item reveal">
-              <Counter targetValue="12" />
+              <span className="stat-number" data-target="12">0</span>
               <span className="stat-plus">+</span>
               <span className="stat-label">Events Hosted</span>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item reveal reveal-delay-1">
-              <Counter targetValue="500" />
+              <span className="stat-number" data-target="500">0</span>
               <span className="stat-plus">+</span>
               <span className="stat-label">Happy Guests</span>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item reveal reveal-delay-2">
-              <Counter targetValue="8" />
+              <span className="stat-number" data-target="8">0</span>
               <span className="stat-plus">+</span>
               <span className="stat-label">Venues</span>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item reveal reveal-delay-3">
-              <Counter targetValue="1" />
+              <span className="stat-number" data-target="1">0</span>
               <span className="stat-plus">+</span>
               <span className="stat-label">Years Running</span>
             </div>

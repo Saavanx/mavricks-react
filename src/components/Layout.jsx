@@ -7,45 +7,48 @@ export default function Layout({ children }) {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   useEffect(() => {
+    // 1. Custom Cursor Followers (Desktop Only)
     const cursor = document.querySelector('.cursor');
     const follower = document.querySelector('.cursor-follower');
     const shouldDisableCustomCursor = window.matchMedia('(max-width: 768px), (hover: none)').matches;
-
-    if (!cursor || !follower || shouldDisableCustomCursor) return;
 
     let mouseX = 0;
     let mouseY = 0;
     let followerX = 0;
     let followerY = 0;
+    let animationFrameId;
 
     const handleMouseMove = (e) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
-      cursor.style.left = mouseX + 'px';
-      cursor.style.top = mouseY + 'px';
+      if (cursor) {
+        cursor.style.left = mouseX + 'px';
+        cursor.style.top = mouseY + 'px';
+      }
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
+    if (cursor && follower && !shouldDisableCustomCursor) {
+      document.addEventListener('mousemove', handleMouseMove);
 
-    let animationFrameId;
-    const animateFollower = () => {
-      followerX += (mouseX - followerX) * 0.12;
-      followerY += (mouseY - followerY) * 0.12;
-      follower.style.left = followerX + 'px';
-      follower.style.top = followerY + 'px';
-      animationFrameId = requestAnimationFrame(animateFollower);
-    };
-    animateFollower();
+      const animateFollower = () => {
+        followerX += (mouseX - followerX) * 0.12;
+        followerY += (mouseY - followerY) * 0.12;
+        follower.style.left = followerX + 'px';
+        follower.style.top = followerY + 'px';
+        animationFrameId = requestAnimationFrame(animateFollower);
+      };
+      animateFollower();
+    }
 
-    // Hover elements selectors
+    // Hover listeners definition
     const handleMouseEnter = () => {
-      cursor.classList.add('hover');
-      follower.classList.add('hover');
+      if (cursor) cursor.classList.add('hover');
+      if (follower) follower.classList.add('hover');
     };
 
     const handleMouseLeave = () => {
-      cursor.classList.remove('hover');
-      follower.classList.remove('hover');
+      if (cursor) cursor.classList.remove('hover');
+      if (follower) follower.classList.remove('hover');
     };
 
     const bindHoverListeners = () => {
@@ -55,19 +58,86 @@ export default function Layout({ children }) {
       });
     };
 
-    // Re-bind hover listeners after pages mount
-    const timer = setTimeout(bindHoverListeners, 150);
+    // 2. Scroll Reveal Animations Observer
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    const setupReveals = () => {
+      document.querySelectorAll('.reveal').forEach(el => {
+        // Remove old visible state if route changed, to re-trigger animation
+        el.classList.remove('visible');
+        revealObserver.observe(el);
+      });
+    };
+
+    // 3. Stats Count-up Observer
+    const animateCounter = (el) => {
+      const target = parseInt(el.getAttribute('data-target'), 10);
+      if (isNaN(target)) return;
+      const duration = 2000;
+      const step = target / (duration / 16);
+      let current = 0;
+      const timer = setInterval(() => {
+        current += step;
+        if (current >= target) {
+          current = target;
+          clearInterval(timer);
+        }
+        el.textContent = Math.floor(current).toLocaleString();
+      }, 16);
+    };
+
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateCounter(entry.target);
+          counterObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    const setupCounters = () => {
+      document.querySelectorAll('[data-target]').forEach(c => {
+        c.textContent = '0';
+        counterObserver.observe(c);
+      });
+    };
+
+    // 4. Infinite Ticker Duplication
+    const setupTicker = () => {
+      const track = document.querySelector('.ticker-track');
+      if (track && !track.dataset.cloned) {
+        track.innerHTML += track.innerHTML;
+        track.dataset.cloned = 'true';
+      }
+    };
+
+    // Schedule bindings to ensure components are in the DOM
+    const timer = setTimeout(() => {
+      bindHoverListeners();
+      setupReveals();
+      setupCounters();
+      setupTicker();
+    }, 150);
 
     return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       document.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
       clearTimeout(timer);
+      revealObserver.disconnect();
+      counterObserver.disconnect();
       document.querySelectorAll('a, button, .card, .nav-cta, select, input').forEach(el => {
         el.removeEventListener('mouseenter', handleMouseEnter);
         el.removeEventListener('mouseleave', handleMouseLeave);
       });
     };
-  }, [children]); // Re-bind hover event listeners on page changes
+  }, [children]); // Re-run when pages switch
 
   return (
     <>

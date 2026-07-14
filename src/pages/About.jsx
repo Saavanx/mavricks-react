@@ -68,7 +68,7 @@ export default function About() {
                   <p>House Party<br/>2025</p>
                 </div>
                 <div className="sc-card sc-front">
-                  <span className="sc-number" style={{ fontSize: '3rem', fontFamily: 'var(--font-display)', display: 'block', color: 'var(--gold)' }}>12</span>
+                  <span className="sc-number" data-target="12">0</span>
                   <p>Events & Counting</p>
                 </div>
               </div>
