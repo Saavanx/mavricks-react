@@ -44,10 +44,13 @@ function TypedWords() {
 }
 
 export default function Home() {
+  const [toastVisible, setToastVisible] = useState(false);
+
   const handleNewsletterSubmit = (e) => {
     e.preventDefault();
-    alert('Thank you for subscribing to our newsletter!');
+    setToastVisible(true);
     e.target.reset();
+    setTimeout(() => setToastVisible(false), 4000);
   };
 
   return (
@@ -94,21 +97,21 @@ export default function Home() {
             <div className="hero-panel">
               <div className="hero-panel-top">
                 <span className="hero-panel-label">Coming Soon</span>
-                <span className="hero-panel-status"><span></span>Stay Tuned</span>
+                <span className="hero-panel-status"><span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#2ecc71', marginRight: '6px', animation: 'pulse-dot 1.5s infinite' }}></span>Planning Stage</span>
               </div>
-              <h3>Next Big Night</h3>
-              <p className="hero-panel-subtitle">Announcement Dropping Soon</p>
+              <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em', fontSize: '1.45rem', marginBottom: '6px' }}>Next Big Night</h3>
+              <p className="hero-panel-subtitle" style={{ color: 'var(--gold)', fontWeight: 600, fontSize: '0.85rem' }}>Dropping Very Soon — Stay Locked In</p>
               <div className="hero-panel-meta">
                 <div className="hero-panel-item">
-                  <strong>What's Next</strong>
-                  <span>Something bigger is in the works. Follow us to be the first to know.</span>
+                  <strong>📍 NCR Region</strong>
+                  <span>Premium venue. Secret location. Announced a week before.</span>
                 </div>
                 <div className="hero-panel-item">
-                  <strong>Stay Updated</strong>
-                  <span>Subscribe to our newsletter or follow on Instagram for early access.</span>
+                  <strong>🔔 Early Access</strong>
+                  <span>Subscribers get first access & early-bird pricing before public launch.</span>
                 </div>
               </div>
-              <Link to="/contact" className="btn-gold hero-panel-cta">Get Notified</Link>
+              <Link to="/contact" className="btn-gold hero-panel-cta">Get Early Access →</Link>
             </div>
           </div>
         </div>
@@ -314,26 +317,18 @@ export default function Home() {
             <Link to="/gallery" className="btn-outline">View Gallery</Link>
           </div>
           <div className="gallery-grid reveal reveal-delay-1">
-            <div className="gallery-item gi-tall">
-              <div className="gi-overlay"><span>Rooftop Saturdays</span></div>
-              <div className="gi-placeholder" style={{ background: 'linear-gradient(135deg,#1a1729,#ff3cac44)' }}>🌆</div>
-            </div>
-            <div className="gallery-item gi-wide">
-              <div className="gi-overlay"><span>Pool Vibes</span></div>
-              <div className="gi-placeholder" style={{ background: 'linear-gradient(135deg,#1a1729,#00f0ff44)' }}>🌊</div>
-            </div>
-            <div className="gallery-item">
-              <div className="gi-overlay"><span>Club Noir</span></div>
-              <div className="gi-placeholder" style={{ background: 'linear-gradient(135deg,#1a1729,#7b2fff44)' }}>🎧</div>
-            </div>
-            <div className="gallery-item">
-              <div className="gi-overlay"><span>Mansion Party</span></div>
-              <div className="gi-placeholder" style={{ background: 'linear-gradient(135deg,#1a1729,#e8b86d44)' }}>🏡</div>
-            </div>
-            <div className="gallery-item gi-wide2">
-              <div className="gi-overlay"><span>Neon Carnival</span></div>
-              <div className="gi-placeholder" style={{ background: 'linear-gradient(135deg,#1a1729,#ff6b3544)' }}>🎪</div>
-            </div>
+            {[
+              { label: 'Rooftop Saturdays', sub: 'Sky High Session', emoji: '🌆', grad: 'linear-gradient(135deg,#1a1729,#ff3cac44)', size: 'gi-tall' },
+              { label: 'Pool Vibes', sub: 'Splash Sundays', emoji: '🌊', grad: 'linear-gradient(135deg,#001a2e,#00f0ff44)', size: 'gi-wide' },
+              { label: 'Club Noir', sub: 'Underground Beats', emoji: '🎧', grad: 'linear-gradient(135deg,#0d0028,#7b2fff44)', size: '' },
+              { label: 'Mansion Party', sub: 'Private Takeover', emoji: '🏡', grad: 'linear-gradient(135deg,#1a1000,#e8b86d44)', size: '' },
+              { label: 'Neon Carnival', sub: 'DJ Night Special', emoji: '🎪', grad: 'linear-gradient(135deg,#001a10,#00ff8844)', size: 'gi-wide2' },
+            ].map((item, i) => (
+              <div key={i} className={`gallery-item ${item.size}`}>
+                <div className="gi-overlay"><span>{item.label}</span></div>
+                <div className="gi-placeholder" style={{ background: item.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', height: '100%', minHeight: '180px' }}>{item.emoji}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -398,6 +393,23 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* TOAST NOTIFICATION */}
+      <div style={{
+        position: 'fixed', bottom: '30px', left: '50%', transform: `translateX(-50%) translateY(${toastVisible ? '0' : '80px'})`,
+        background: 'linear-gradient(135deg,#1a2e1a,#0d1f0d)', border: '1px solid rgba(46,204,113,0.4)',
+        borderRadius: '14px', padding: '14px 24px', zIndex: 99999,
+        display: 'flex', alignItems: 'center', gap: '12px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.5)', opacity: toastVisible ? 1 : 0,
+        transition: 'all 0.4s cubic-bezier(0.34,1.56,0.64,1)', pointerEvents: 'none',
+        whiteSpace: 'nowrap'
+      }}>
+        <span style={{ fontSize: '1.3rem' }}>🎉</span>
+        <div>
+          <strong style={{ color: '#2ecc71', display: 'block', fontSize: '0.9rem' }}>You're on the list!</strong>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem' }}>We'll hit you up before the next drop.</span>
+        </div>
+      </div>
     </div>
   );
 }

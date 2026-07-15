@@ -446,9 +446,15 @@ export default function Tickets({ onOpenLogin }) {
             
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(231, 76, 60, 0.15)', border: '1px solid rgba(231,76,60,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>⚠️</div>
             
-            <h3 className="modal-title" style={{ color: '#e74c3c', fontSize: '20px', marginBottom: '8px' }}>Payment Gateway Unavailable</h3>
+            <h3 className="modal-title" style={{ color: '#e74c3c', fontSize: '20px', marginBottom: '8px' }}>
+              {gatewayError && gatewayError.includes('not yet activated')
+                ? 'Payment Setup In Progress'
+                : 'Payment Gateway Issue'}
+            </h3>
             <p className="modal-subtitle" style={{ marginBottom: '20px', lineHeight: '1.7' }}>
-              Our payment gateway is currently experiencing downtime. You can book directly via WhatsApp and our team will confirm your slot instantly.
+              {gatewayError && gatewayError.includes('not yet activated')
+                ? 'Online payments are being set up. In the meantime, book directly via WhatsApp — our team will confirm your slot instantly.'
+                : 'We\'re having trouble connecting to the payment gateway. Book directly via WhatsApp and our team will confirm your slot instantly.'}
             </p>
 
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '16px', marginBottom: '20px', textAlign: 'left', fontSize: '13px' }}>
