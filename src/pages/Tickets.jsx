@@ -29,7 +29,8 @@ export default function Tickets({ onOpenLogin }) {
   const packagePrices = {
     stag: 2299,
     female: 499,
-    couple: 2799
+    couple: 2799,
+    test: 1
   };
   const tablePrices = {
     '': 0,
@@ -324,6 +325,7 @@ export default function Tickets({ onOpenLogin }) {
                     <option value="stag">Stag Entry — ₹2,299</option>
                     <option value="female">Ladies Entry — ₹499</option>
                     <option value="couple">Couple Entry — ₹2,799</option>
+                    <option value="test">⚡ Gateway Test — ₹1</option>
                   </select>
                 </div>
 
