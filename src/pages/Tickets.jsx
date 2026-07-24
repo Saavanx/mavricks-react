@@ -179,6 +179,61 @@ export default function Tickets({ onOpenLogin }) {
     }
   };
 
+  // ₹1 test payment handler
+  const handleTestPayment = async () => {
+    if (!currentUser) {
+      onOpenLogin();
+      return;
+    }
+    if (!customerEmail || !customerPhone) {
+      alert('Please fill in your Email and Phone above before testing.');
+      return;
+    }
+    setSubmitting(true);
+    const payload = {
+      eventKey: 'march-madness',
+      packageType: 'stag',
+      quantity: 1,
+      tableType: '',
+      addOns: [],
+      customerEmail,
+      customerPhone,
+      overrideAmount: 1   // ₹1 test — backend must honour this flag
+    };
+    try {
+      const token = await getFreshToken() || idToken;
+      const response = await fetch('/api/create-payment-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Payment could not be initialized.');
+      }
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return;
+      }
+      setReceipt({
+        date: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+        status: 'Test',
+        amount: '₹1',
+        transactionId: result.paymentRef || 'TEST',
+        ref: 'Gateway Test'
+      });
+      setIsReceiptOpen(true);
+    } catch (err) {
+      console.error(err);
+      setGatewayError(err.message || 'Unable to connect to the payment gateway.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="tickets-page">
       <section className="page-hero tickets-hero">
@@ -367,8 +422,35 @@ export default function Tickets({ onOpenLogin }) {
                   style={{ cursor: 'pointer' }}
                   disabled={submitting}
                 >
-                  {submitting ? 'Connecting...' : `Proceed to Payment (Total: ₹${calculateTotal().toLocaleString('en-IN')})`}
+                  {submitting ? 'Connecting...' : `Proceed to Payment — ₹${calculateTotal().toLocaleString('en-IN')}`}
                 </button>
+
+                {/* ₹1 Gateway Test Button */}
+                <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={handleTestPayment}
+                    disabled={submitting}
+                    style={{
+                      width: '100%', padding: '11px 20px',
+                      borderRadius: '999px',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px dashed rgba(255,255,255,0.2)',
+                      color: 'rgba(255,255,255,0.55)',
+                      fontWeight: 600, fontSize: '0.8rem',
+                      letterSpacing: '0.05em', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,207,77,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,207,77,0.4)'; e.currentTarget.style.color = '#ffcf4d'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
+                  >
+                    ⚡ Test Gateway — Pay ₹1 Only
+                  </button>
+                  <p style={{ textAlign: 'center', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '6px' }}>
+                    For internal testing only. Charges ₹1 to verify gateway is live.
+                  </p>
+                </div>
               </form>
 
               <div className="ticket-policies">
